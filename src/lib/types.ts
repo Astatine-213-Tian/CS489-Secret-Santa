@@ -5,3 +5,8 @@ export interface GiftPreferences {
   allergies: string
   additionalInfo: string
 }
+
+export interface GiftSubmitFormData {
+  description: string
+  note?: string
+}

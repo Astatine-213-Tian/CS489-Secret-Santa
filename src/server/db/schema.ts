@@ -14,7 +14,7 @@ import {
 } from "drizzle-orm/pg-core"
 import { nanoid } from "nanoid"
 
-import type { GiftPreferences } from "@/lib/types"
+import type { GiftPreferences, GiftSubmitFormData } from "@/lib/types"
 
 const createId = () => nanoid(11)
 const createToken = () => nanoid(20)
@@ -117,6 +117,25 @@ export const assignment = pgTable(
   (table) => [
     primaryKey({ columns: [table.eventId, table.giverId] }),
     unique("assignment_receiver_unique").on(table.eventId, table.receiverId),
+  ]
+)
+
+// ADDED: gift-submit details (one-2-one w' assignment)
+export const giftSubmit = pgTable(
+  "gift_submit",
+  {
+    id: varchar("id", { length: 11 }).primaryKey().$defaultFn(createId),
+    assignmentEventId: text("assignment_event_id")
+      .notNull()
+      .references(() => assignment.eventId, { onDelete: "cascade" }),
+    assignmentGiverId: varchar("assignment_giver_id", { length: 11 })
+      .notNull()
+      .references(() => assignment.giverId, { onDelete: "cascade" }),
+    submittedAt: timestamp("submitted_at").notNull().defaultNow(),
+    giftDetails: jsonb("gift_details").notNull().$type<GiftSubmitFormData>(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.assignmentEventId, table.assignmentGiverId] }),
   ]
 )
 
@@ -238,3 +257,11 @@ export const assignmentExclusionRelations = relations(
     }),
   })
 )
+
+// ADDED:
+export const giftSubmitRelations = relations(giftSubmit, ({ one }) => ({
+  assignment: one(assignment, {
+    fields: [giftSubmit.assignmentEventId, giftSubmit.assignmentGiverId],
+    references: [assignment.eventId, assignment.giverId],
+  }),
+}))
